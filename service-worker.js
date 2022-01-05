@@ -1,39 +1,52 @@
-let resolveWebnFile;
-const webnFile = new Promise((resolve, reject) => {
-  resolveWebnFile = resolve;
-});
+import { Bundle } from 'wbn';
+import { Buffer } from 'buffer';
 
-function getByUrl(url) {
+function readBundle(file) {
   return new Promise(async (resolve, reject) => {
-    console.log('getByUrl');
-    const file = await webnFile;
-    console.log(file);
     const filereader = new FileReader();
     filereader.onload = async(e) => {
-      console.log('onload');
       const bundle = new Bundle(Buffer.from(e.target.result));
-      console.log(bundle.urls);
-      resolve(bundle.getResponse(url));
+      resolve(bundle);
     }
     filereader.readAsArrayBuffer(file);
   });
 }
 
 self.addEventListener('message', (event) => {
-  console.log('message 4', event.data, resolveWebnFile);
-  resolveWebnFile(event.data);
+  console.log('message', event.data);
+  event.waitUntil(
+    caches.open('webn').then(async function(cache) {
+      console.log('cache opened')
+      const bundle = await readBundle(event.data);
+      for (const url of bundle.urls) {
+        const newUrl = new URL(url).pathname;
+        console.log(newUrl);
+        const response = bundle.getResponse(url);
+        cache.put(newUrl, new Response(response.body, response));
+      }
+    })
+  );
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', async (event) => {
   const requestedUrl = event.request.url;
   const pathname = new URL(requestedUrl).pathname;
-  console.log('fetch 5', requestedUrl);
-  webnFile.then((file) => {
-    console.log('WEBNFILE', file);
-  })
+  console.log('fetch', requestedUrl);
   if (pathname.startsWith('/webn/')) {
-    console.log('plop')
-    const url = pathname.replace('/webn/', '/');
-    event.respondWith(getByUrl('index.html'));
+    event.respondWith(
+      caches.open('webn').then(function(cache) {
+        console.log(pathname.replace('/webn/', '/'));
+        return cache.match(pathname.replace('/webn/', '/')).then((result) => {
+          console.log(result, result.body);
+          return result;
+        })
+      })
+    );
+  } else {
+    event.respondWith(
+      caches.open('webn').then(function(cache) {
+        return cache.match(event.request);
+      })
+    );
   }
 });

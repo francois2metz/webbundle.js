@@ -1,6 +1,3 @@
-import { Bundle } from 'wbn';
-import { Buffer } from 'buffer';
-
 let serviceWorker;
 navigator.serviceWorker.register(
   new URL('service-worker.js', import.meta.url),
