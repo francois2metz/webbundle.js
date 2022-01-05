@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "dev": "parcel serve index.html"
+    "dev": "parcel watch index.html"
   },
   "dependencies": {
     "@parcel/service-worker": "^2.0.1",
