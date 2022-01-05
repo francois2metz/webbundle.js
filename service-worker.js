@@ -16,11 +16,9 @@ function readBundle(file) {
 }
 
 self.addEventListener('message', (event) => {
-  console.log('message');
   onceCacheLoaded = new Promise((resolve) => {
     event.waitUntil(
       caches.open('webn').then(async function(cache) {
-        console.log('cache opened')
         const bundle = await readBundle(event.data);
         for (const url of bundle.urls) {
           const newUrl = new URL(url).pathname;
@@ -41,9 +39,7 @@ self.addEventListener('fetch', async (event) => {
     event.respondWith(
       onceCacheLoaded.then(() => {
         return caches.open('webn').then(async function(cache) {
-          console.log(pathname.replace('/webn/', '/'));
           const response = await cache.match(pathname.replace('/webn/', '/'));
-          console.log(pathname, response.body);
           return response;
         });
       })
