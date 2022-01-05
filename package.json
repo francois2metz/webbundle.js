@@ -3,6 +3,7 @@
     "dev": "parcel serve index.html"
   },
   "dependencies": {
+    "@parcel/service-worker": "^2.0.1",
     "wbn": "^0.0.6"
   },
   "devDependencies": {
