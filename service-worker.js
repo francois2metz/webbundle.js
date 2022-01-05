@@ -1,6 +1,9 @@
 import { Bundle } from 'wbn';
 import { Buffer } from 'buffer';
 
+let resolveCacheLoaded;
+let onceCacheLoaded;
+
 function readBundle(file) {
   return new Promise(async (resolve, reject) => {
     const filereader = new FileReader();
@@ -13,19 +16,21 @@ function readBundle(file) {
 }
 
 self.addEventListener('message', (event) => {
-  console.log('message', event.data);
-  event.waitUntil(
-    caches.open('webn').then(async function(cache) {
-      console.log('cache opened')
-      const bundle = await readBundle(event.data);
-      for (const url of bundle.urls) {
-        const newUrl = new URL(url).pathname;
-        console.log(newUrl);
-        const response = bundle.getResponse(url);
-        cache.put(newUrl, new Response(response.body, response));
-      }
-    })
-  );
+  console.log('message');
+  onceCacheLoaded = new Promise((resolve) => {
+    event.waitUntil(
+      caches.open('webn').then(async function(cache) {
+        console.log('cache opened')
+        const bundle = await readBundle(event.data);
+        for (const url of bundle.urls) {
+          const newUrl = new URL(url).pathname;
+          const response = bundle.getResponse(url);
+          cache.put(newUrl, new Response(response.body, response));
+        }
+        resolve();
+      })
+    );
+  });
 });
 
 self.addEventListener('fetch', async (event) => {
@@ -34,18 +39,23 @@ self.addEventListener('fetch', async (event) => {
   console.log('fetch', requestedUrl);
   if (pathname.startsWith('/webn/')) {
     event.respondWith(
-      caches.open('webn').then(function(cache) {
-        console.log(pathname.replace('/webn/', '/'));
-        return cache.match(pathname.replace('/webn/', '/')).then((result) => {
-          console.log(result, result.body);
-          return result;
-        })
+      onceCacheLoaded.then(() => {
+        return caches.open('webn').then(async function(cache) {
+          console.log(pathname.replace('/webn/', '/'));
+          const response = await cache.match(pathname.replace('/webn/', '/'));
+          console.log(pathname, response.body);
+          return response;
+        });
       })
     );
   } else {
     event.respondWith(
-      caches.open('webn').then(function(cache) {
-        return cache.match(event.request);
+      caches.open('webn').then(async function(cache) {
+        const response = cache.match(pathname);
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
       })
     );
   }
