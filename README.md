@@ -2,12 +2,18 @@
 
 This in an experimental implementation of the Web Bundle specification in the browser.
 
-# Usage
+It load the webn file in a service worker, it fill the cache and it serve it when requested.
+
+## Usage
 
     yarn
     yarn dev
 
 And go to http://localhost:1234/
+
+## Caveat / Limitations
+
+If the webn app unregister the service worker, stuff will not work.
 
 ## Resources
 
